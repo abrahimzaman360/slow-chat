@@ -1,38 +1,63 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Error, Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from '../schema/user.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { User } from '@/schema/user.entity'; // adjust path if needed
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
-  constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
+
+  async createUser(createUserDto: CreateUserDto): Promise<User> {
     const { password, ...rest } = createUserDto;
 
     try {
       const hashedPassword = await bcrypt.hash(password, 10);
-      const createdUser = new this.userModel({
+      const newUser = this.userRepository.create({
         ...rest,
         password: hashedPassword,
       });
 
-      // Log the successful creation of the user
-      this.logger.log(`User created: ${JSON.stringify(createdUser)}`);
+      const savedUser = await this.userRepository.save(newUser);
 
-      return createdUser.save();
+      this.logger.log(`User created: ${savedUser.username}`);
+      return savedUser;
     } catch (error) {
       this.logger.error(`Error creating user: ${error}`);
       throw error;
     }
   }
 
-  async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
-    return this.userModel.findOne({ phoneNumber }).exec();
+  async findByIdentity(identity: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: [
+        { email: identity },
+        { username: identity },
+      ],
+    });
   }
 
-  // add more user-related methods as needed
+  async findByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { phoneNumber },
+    });
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async validateUser(identity: string, password: string): Promise<User | null> {
+    const user = await this.findByIdentity(identity);
+    if (user && await bcrypt.compare(password, user.password)) {
+      return user;
+    }
+    return null;
+  }
 }

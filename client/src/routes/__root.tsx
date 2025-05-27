@@ -3,9 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import TanStackQueryLayout from '../integrations/tanstack-query/layout.tsx'
 
 import type { QueryClient } from '@tanstack/react-query'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar.tsx'
-import { AppSidebar } from '@/components/app/sidebar/app-sidebar.tsx'
-import { SiteHeader } from '@/components/app/sidebar/site-header.tsx'
+import { Toaster } from 'sonner'
 
 interface MyRouterContext {
   queryClient: QueryClient
@@ -14,17 +12,10 @@ interface MyRouterContext {
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: () => (
     <>
-      <SidebarProvider>
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <SiteHeader />
-          <div>
-            <Outlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+      <Outlet />
       <TanStackRouterDevtools position='top-right' />
       <TanStackQueryLayout />
+      <Toaster />
     </>
   ),
 })

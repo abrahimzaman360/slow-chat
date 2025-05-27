@@ -1,18 +1,16 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { MessagesService } from './messages/messages.service';
 import { MessagesController } from './messages/messages.controller';
-import { Message, MessageSchema } from './schema/message.schema';
-import { Chat, ChatSchema } from '../chats/schema/chat.schema';
 import { ChatsModule } from '../chats/chats.module';
 import { MessageGateway } from './messages/gateway/message.gateway';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from '@/schema/user.entity';
+import { Message } from '@/schema/message.entity';
+import { Chat } from '@/schema/chat.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: Message.name, schema: MessageSchema },
-      { name: Chat.name, schema: ChatSchema }, // for lastMessage updates
-    ]),
+    TypeOrmModule.forFeature([User, Message, Chat]),
     forwardRef(() => ChatsModule), // <-- use forwardRef here too
   ],
   controllers: [

@@ -1,6 +1,6 @@
 import { forwardRef, Inject } from '@nestjs/common';
-import { CreateMessageDto } from '../../messages/dto/create-message.dto';
-import { MessagesService } from '../../messages/messages/messages.service';
+import { CreateMessageDto } from '@/messages/dto/create-message.dto';
+import { MessagesService } from '@/messages/messages/messages.service';
 import {
   MessageBody,
   SubscribeMessage,

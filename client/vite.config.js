@@ -8,7 +8,7 @@ import { resolve } from "node:path";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [TanStackRouterVite({ autoCodeSplitting: true }), viteReact(), tailwindcss(), webfontDownload([
+  plugins: [TanStackRouterVite({ autoCodeSplitting: true, routeToken: 'layout' }), viteReact(), tailwindcss(), webfontDownload([
     'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap',
     'https://fonts.googleapis.com/css2?family=Geist+Mono:wght@100..900&family=Geist:wght@100..900&display=swap'
   ]),

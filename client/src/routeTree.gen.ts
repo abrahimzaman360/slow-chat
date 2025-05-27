@@ -11,15 +11,24 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as IndexImport } from './routes/index'
+import { Route as AuthLayoutImport } from './routes/auth/layout'
+import { Route as LayoutImport } from './routes/layout'
 import { Route as StoriesIndexImport } from './routes/stories/index'
 import { Route as MessagesIndexImport } from './routes/messages/index'
 import { Route as GroupsIndexImport } from './routes/groups/index'
 import { Route as AnalyticsIndexImport } from './routes/analytics/index'
+import { Route as AuthRegisterIndexImport } from './routes/auth/register/index'
+import { Route as AuthLoginIndexImport } from './routes/auth/login/index'
 
 // Create/Update Routes
 
-const IndexRoute = IndexImport.update({
+const AuthLayoutRoute = AuthLayoutImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const LayoutRoute = LayoutImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRoute,
@@ -49,6 +58,18 @@ const AnalyticsIndexRoute = AnalyticsIndexImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const AuthRegisterIndexRoute = AuthRegisterIndexImport.update({
+  id: '/register/',
+  path: '/register/',
+  getParentRoute: () => AuthLayoutRoute,
+} as any)
+
+const AuthLoginIndexRoute = AuthLoginIndexImport.update({
+  id: '/login/',
+  path: '/login/',
+  getParentRoute: () => AuthLayoutRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -57,7 +78,14 @@ declare module '@tanstack/react-router' {
       id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexImport
+      preLoaderRoute: typeof LayoutImport
+      parentRoute: typeof rootRoute
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthLayoutImport
       parentRoute: typeof rootRoute
     }
     '/analytics/': {
@@ -88,47 +116,110 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoriesIndexImport
       parentRoute: typeof rootRoute
     }
+    '/auth/login/': {
+      id: '/auth/login/'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginIndexImport
+      parentRoute: typeof AuthLayoutImport
+    }
+    '/auth/register/': {
+      id: '/auth/register/'
+      path: '/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterIndexImport
+      parentRoute: typeof AuthLayoutImport
+    }
   }
 }
 
 // Create and export the route tree
 
+interface AuthLayoutRouteChildren {
+  AuthLoginIndexRoute: typeof AuthLoginIndexRoute
+  AuthRegisterIndexRoute: typeof AuthRegisterIndexRoute
+}
+
+const AuthLayoutRouteChildren: AuthLayoutRouteChildren = {
+  AuthLoginIndexRoute: AuthLoginIndexRoute,
+  AuthRegisterIndexRoute: AuthRegisterIndexRoute,
+}
+
+const AuthLayoutRouteWithChildren = AuthLayoutRoute._addFileChildren(
+  AuthLayoutRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof LayoutRoute
+  '/auth': typeof AuthLayoutRouteWithChildren
   '/analytics': typeof AnalyticsIndexRoute
   '/groups': typeof GroupsIndexRoute
   '/messages': typeof MessagesIndexRoute
   '/stories': typeof StoriesIndexRoute
+  '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/register': typeof AuthRegisterIndexRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof LayoutRoute
+  '/auth': typeof AuthLayoutRouteWithChildren
   '/analytics': typeof AnalyticsIndexRoute
   '/groups': typeof GroupsIndexRoute
   '/messages': typeof MessagesIndexRoute
   '/stories': typeof StoriesIndexRoute
+  '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/register': typeof AuthRegisterIndexRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
-  '/': typeof IndexRoute
+  '/': typeof LayoutRoute
+  '/auth': typeof AuthLayoutRouteWithChildren
   '/analytics/': typeof AnalyticsIndexRoute
   '/groups/': typeof GroupsIndexRoute
   '/messages/': typeof MessagesIndexRoute
   '/stories/': typeof StoriesIndexRoute
+  '/auth/login/': typeof AuthLoginIndexRoute
+  '/auth/register/': typeof AuthRegisterIndexRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/analytics' | '/groups' | '/messages' | '/stories'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/analytics'
+    | '/groups'
+    | '/messages'
+    | '/stories'
+    | '/auth/login'
+    | '/auth/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/analytics' | '/groups' | '/messages' | '/stories'
-  id: '__root__' | '/' | '/analytics/' | '/groups/' | '/messages/' | '/stories/'
+  to:
+    | '/'
+    | '/auth'
+    | '/analytics'
+    | '/groups'
+    | '/messages'
+    | '/stories'
+    | '/auth/login'
+    | '/auth/register'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/analytics/'
+    | '/groups/'
+    | '/messages/'
+    | '/stories/'
+    | '/auth/login/'
+    | '/auth/register/'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  LayoutRoute: typeof LayoutRoute
+  AuthLayoutRoute: typeof AuthLayoutRouteWithChildren
   AnalyticsIndexRoute: typeof AnalyticsIndexRoute
   GroupsIndexRoute: typeof GroupsIndexRoute
   MessagesIndexRoute: typeof MessagesIndexRoute
@@ -136,7 +227,8 @@ export interface RootRouteChildren {
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  LayoutRoute: LayoutRoute,
+  AuthLayoutRoute: AuthLayoutRouteWithChildren,
   AnalyticsIndexRoute: AnalyticsIndexRoute,
   GroupsIndexRoute: GroupsIndexRoute,
   MessagesIndexRoute: MessagesIndexRoute,
@@ -154,6 +246,7 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/auth",
         "/analytics/",
         "/groups/",
         "/messages/",
@@ -161,7 +254,14 @@ export const routeTree = rootRoute
       ]
     },
     "/": {
-      "filePath": "index.tsx"
+      "filePath": "layout.tsx"
+    },
+    "/auth": {
+      "filePath": "auth/layout.tsx",
+      "children": [
+        "/auth/login/",
+        "/auth/register/"
+      ]
     },
     "/analytics/": {
       "filePath": "analytics/index.tsx"
@@ -174,6 +274,14 @@ export const routeTree = rootRoute
     },
     "/stories/": {
       "filePath": "stories/index.tsx"
+    },
+    "/auth/login/": {
+      "filePath": "auth/login/index.tsx",
+      "parent": "/auth"
+    },
+    "/auth/register/": {
+      "filePath": "auth/register/index.tsx",
+      "parent": "/auth"
     }
   }
 }

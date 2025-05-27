@@ -5,6 +5,10 @@ export class CreateUserDto {
   @IsNotEmpty()
   username: string;
 
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+
   @IsPhoneNumber(undefined, { message: 'Invalid phone number' })
   phoneNumber: string;
 

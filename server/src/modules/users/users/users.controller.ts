@@ -10,7 +10,7 @@ export class UsersController {
   @Post()
   async createUser(@Body() createUserDto: CreateUserDto) {
     try {
-      const user = await this.usersService.create(createUserDto);
+      const user = await this.usersService.createUser(createUserDto);
       return { success: true, user };
     } catch (error) {
       switch (error.code) {

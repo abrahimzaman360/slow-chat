@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { MessageType } from '../schema/message.schema';
+import { MessageType } from '@/schema/message.entity';
 
 export class CreateMessageDto {
   @IsString()
