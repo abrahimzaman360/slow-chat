@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 
 // Define User type for mutation
 type User = {
@@ -101,7 +101,7 @@ export function LoginForm({
         <h1 className="text-xl font-bold">Welcome to SlowChat Inc.</h1>
         <div className="text-center text-sm">
           Don't have an account?{" "}
-          <Link to="/auth/register" className="underline underline-offset-4">
+          <Link href="/auth/register" className="underline underline-offset-4">
             Sign Up
           </Link>
         </div>
