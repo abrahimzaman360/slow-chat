@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ConsoleLogger, ValidationPipe } from '@nestjs/common';
+import { ConsoleLogger } from '@nestjs/common';
 import * as session from 'express-session';
 import * as passport from 'passport';
 import * as cookieParser from 'cookie-parser';
@@ -8,6 +8,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ISession, TypeormStore } from 'connect-typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { SessionEntity } from '@/schema/session.entity';
+import { ValidationPipe } from '@nestjs/common';
+import { v7 as uuidv7 } from 'uuid';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -27,16 +29,16 @@ async function bootstrap() {
   app.use(cookieParser());
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   });
   app.setGlobalPrefix('api');
 
-  // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
+      validateCustomDecorators: true,
     }),
   );
 
@@ -48,11 +50,14 @@ async function bootstrap() {
       saveUninitialized: false,
       store: new TypeormStore({
         cleanupLimit: 2,
-        ttl: 86400, // 24 hours in seconds
-        onError: (error) => {
-          console.error('Session store error:', error);
+        ttl() {
+          return 24 * 60 * 60 * 7; // 24 hours in seconds
         },
+        onError: (store: TypeormStore, error: Error) => {
+          console.error('Session storage error:', error);
+        }
       }).connect(sessionRepository),
+      genid: () => uuidv7(),
       cookie: {
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         httpOnly: true,

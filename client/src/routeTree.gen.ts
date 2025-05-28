@@ -18,6 +18,7 @@ import { Route as MessagesIndexImport } from './routes/messages/index'
 import { Route as GroupsIndexImport } from './routes/groups/index'
 import { Route as AnalyticsIndexImport } from './routes/analytics/index'
 import { Route as AuthRegisterIndexImport } from './routes/auth/register/index'
+import { Route as AuthLogoutIndexImport } from './routes/auth/logout/index'
 import { Route as AuthLoginIndexImport } from './routes/auth/login/index'
 
 // Create/Update Routes
@@ -61,6 +62,12 @@ const AnalyticsIndexRoute = AnalyticsIndexImport.update({
 const AuthRegisterIndexRoute = AuthRegisterIndexImport.update({
   id: '/register/',
   path: '/register/',
+  getParentRoute: () => AuthLayoutRoute,
+} as any)
+
+const AuthLogoutIndexRoute = AuthLogoutIndexImport.update({
+  id: '/logout/',
+  path: '/logout/',
   getParentRoute: () => AuthLayoutRoute,
 } as any)
 
@@ -123,6 +130,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginIndexImport
       parentRoute: typeof AuthLayoutImport
     }
+    '/auth/logout/': {
+      id: '/auth/logout/'
+      path: '/logout'
+      fullPath: '/auth/logout'
+      preLoaderRoute: typeof AuthLogoutIndexImport
+      parentRoute: typeof AuthLayoutImport
+    }
     '/auth/register/': {
       id: '/auth/register/'
       path: '/register'
@@ -137,11 +151,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthLayoutRouteChildren {
   AuthLoginIndexRoute: typeof AuthLoginIndexRoute
+  AuthLogoutIndexRoute: typeof AuthLogoutIndexRoute
   AuthRegisterIndexRoute: typeof AuthRegisterIndexRoute
 }
 
 const AuthLayoutRouteChildren: AuthLayoutRouteChildren = {
   AuthLoginIndexRoute: AuthLoginIndexRoute,
+  AuthLogoutIndexRoute: AuthLogoutIndexRoute,
   AuthRegisterIndexRoute: AuthRegisterIndexRoute,
 }
 
@@ -157,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/messages': typeof MessagesIndexRoute
   '/stories': typeof StoriesIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/logout': typeof AuthLogoutIndexRoute
   '/auth/register': typeof AuthRegisterIndexRoute
 }
 
@@ -168,6 +185,7 @@ export interface FileRoutesByTo {
   '/messages': typeof MessagesIndexRoute
   '/stories': typeof StoriesIndexRoute
   '/auth/login': typeof AuthLoginIndexRoute
+  '/auth/logout': typeof AuthLogoutIndexRoute
   '/auth/register': typeof AuthRegisterIndexRoute
 }
 
@@ -180,6 +198,7 @@ export interface FileRoutesById {
   '/messages/': typeof MessagesIndexRoute
   '/stories/': typeof StoriesIndexRoute
   '/auth/login/': typeof AuthLoginIndexRoute
+  '/auth/logout/': typeof AuthLogoutIndexRoute
   '/auth/register/': typeof AuthRegisterIndexRoute
 }
 
@@ -193,6 +212,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/stories'
     | '/auth/login'
+    | '/auth/logout'
     | '/auth/register'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -203,6 +223,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/stories'
     | '/auth/login'
+    | '/auth/logout'
     | '/auth/register'
   id:
     | '__root__'
@@ -213,6 +234,7 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/stories/'
     | '/auth/login/'
+    | '/auth/logout/'
     | '/auth/register/'
   fileRoutesById: FileRoutesById
 }
@@ -260,6 +282,7 @@ export const routeTree = rootRoute
       "filePath": "auth/layout.tsx",
       "children": [
         "/auth/login/",
+        "/auth/logout/",
         "/auth/register/"
       ]
     },
@@ -277,6 +300,10 @@ export const routeTree = rootRoute
     },
     "/auth/login/": {
       "filePath": "auth/login/index.tsx",
+      "parent": "/auth"
+    },
+    "/auth/logout/": {
+      "filePath": "auth/logout/index.tsx",
       "parent": "/auth"
     },
     "/auth/register/": {

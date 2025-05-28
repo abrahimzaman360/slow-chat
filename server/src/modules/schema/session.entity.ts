@@ -1,4 +1,3 @@
-import { ISession } from 'connect-typeorm';
 import {
   Entity,
   Column,
@@ -8,8 +7,8 @@ import {
 } from 'typeorm';
 
 @Entity('sessions')
-export class SessionEntity implements ISession {
-  @PrimaryColumn('varchar', { length: 255 })
+export class SessionEntity {
+  @PrimaryColumn('varchar')
   id: string;
 
   @Column('text')
@@ -19,6 +18,6 @@ export class SessionEntity implements ISession {
   @Column('bigint')
   expiredAt: number;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ nullable: true })
   destroyedAt?: Date;
 }

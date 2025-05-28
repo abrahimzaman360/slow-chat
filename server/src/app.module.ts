@@ -8,6 +8,7 @@ import { User } from '@/schema/user.entity';
 import { Chat } from '@/schema/chat.entity';
 import { Message } from '@/schema/message.entity';
 import { SessionEntity } from '@/schema/session.entity';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -26,6 +27,9 @@ import { SessionEntity } from '@/schema/session.entity';
       synchronize: true,
       autoLoadEntities: true,
     }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    })
   ],
 })
 export class AppModule {

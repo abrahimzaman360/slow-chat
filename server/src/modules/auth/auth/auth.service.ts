@@ -12,7 +12,7 @@ export class AuthService {
 
   async validateUser(data: LoginDto): Promise<Omit<User, 'password'> | null> {
     const user = await this.usersService.findByIdentity(data.identity);
-    if (user && await bcrypt.compare(data.password, user.password)) {
+    if (user && user.password && await bcrypt.compare(data.password, user.password)) {
       // exclude password from returned user object
       const { password, ...result } = user;
       return result;

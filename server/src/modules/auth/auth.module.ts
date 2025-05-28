@@ -8,14 +8,23 @@ import { PassportModule } from '@nestjs/passport';
 import { User } from '@/schema/user.entity';
 import { AuthenticatedGuard } from './utility/auth.guard';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GoogleStrategy } from './strategy/google.stragtegy';
+import { GitHubStrategy } from './strategy/github.strategy';
 
 @Module({
   imports: [
-    UsersModule, 
+    UsersModule,
     PassportModule.register({ session: true }),
-    TypeOrmModule.forFeature([User])
+    TypeOrmModule.forFeature([User]),
   ],
-  providers: [AuthService, LocalStrategy, SessionSerializer, AuthenticatedGuard],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    SessionSerializer,
+    AuthenticatedGuard,
+    GoogleStrategy,
+    GitHubStrategy,
+  ],
   controllers: [AuthController],
   exports: [AuthenticatedGuard], // Export if used in other modules
 })

@@ -10,45 +10,56 @@ import {
   Get,
   Req,
   Res,
+  HttpException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from '../dto/auth.dto';
-import { AuthenticatedGuard, LocalAuthGuard } from '../utility/auth.guard';
+import {
+  AuthenticatedGuard,
+  LocalAuthGuard,
+  NotLoggedInGuard,
+} from '../utility/auth.guard';
 import { Request, Response } from 'express';
 import { User } from '@/schema/user.entity';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
   constructor(private authService: AuthService) {}
 
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(LocalAuthGuard)
   @Post('login')
-  signIn(@Req() req: Request, @Body() loginDto: LoginDto) {
-    
-    this.logger.log(`Login attempt for username: ${loginDto.identity}`);
+  @UseGuards(LocalAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  signIn(@Req() req: Request) {
+    const user = req.user as User;
 
-    // Login
-    req.logIn(req.user as User, (err: any) => {
-      if (err) {
-        this.logger.error(`Error logging in: ${err.message}`);
-        throw err;
-      }
-      this.logger.log(`User ${req.user} logged in successfully`);
-    }); 
+    if (!user) {
+      throw new UnauthorizedException('Login failed');
+    }
 
-    return { 
-      message: 'Login successful', 
-      user: req.user,
-      timestamp: new Date().toISOString()
-    };
+    return new Promise((resolve, reject) => {
+      req.logIn(user, (err) => {
+        if (err) {
+          return reject(new UnauthorizedException('Login failed'));
+        }
+
+        this.logger.log(`User ${user.username} logged in successfully`);
+        return resolve({
+          message: 'Login successful',
+          user,
+          timestamp: new Date().toISOString(),
+        });
+      });
+    });
   }
 
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     this.logger.log(`Register attempt with username: ${registerDto.username}`);
+
     try {
       const user = await this.authService.createUser(registerDto);
       return {
@@ -56,24 +67,36 @@ export class AuthController {
         user: {
           username: user.username,
           email: user.email,
-          phoneNumber: user.phoneNumber
-        }
+          phone: user.phone,
+        },
       };
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`);
-      throw error;
+
+      switch (error.message) {
+        case 'User already exists':
+          throw new HttpException(
+            'User already exists',
+            HttpStatus.BAD_REQUEST,
+          );
+        default:
+          throw new HttpException(
+            'Registration failed',
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+      }
     }
   }
 
-  @UseGuards(AuthenticatedGuard)
   @Get('me')
+  @UseGuards(AuthenticatedGuard)
   getMe(@Req() req: Request) {
     const user = req.user as User;
     this.logger.log(`Get me request for user: ${user.username}`);
     return {
       user,
       authenticated: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -85,18 +108,13 @@ export class AuthController {
     }
 
     req.logout((err) => {
-      if (err) {
-        this.logger.error('Logout error:', err);
-        return res.status(500).json({ message: 'Logout failed' });
-      }
-      
+      if (err) return res.status(500).json({ message: 'Logout failed' });
+
       req.session.destroy((err) => {
-        if (err) {
-          this.logger.error('Session destruction error:', err);
+        if (err)
           return res.status(500).json({ message: 'Session cleanup failed' });
-        }
+
         res.clearCookie('connect.sid');
-        this.logger.log('User logged out successfully');
         res.json({ message: 'Logged out successfully' });
       });
     });
@@ -105,11 +123,35 @@ export class AuthController {
   @Get('status')
   checkStatus(@Req() req: Request) {
     this.logger.log(`Status check - Session ID: ${req.sessionID}`);
-    this.logger.log(`Status check - Is authenticated: ${req.isAuthenticated()}`);
+    this.logger.log(
+      `Status check - Is authenticated: ${req.isAuthenticated()}`,
+    );
     return {
       authenticated: req.isAuthenticated(),
       user: req.isAuthenticated() ? req.user : null,
-      sessionId: req.sessionID
+      sessionId: req.sessionID,
     };
+  }
+
+  // OAuth Routes:
+  @Get('google')
+  @UseGuards(NotLoggedInGuard, AuthGuard('google'))
+  async googleAuth() {}
+
+  @Get('google/callback')
+  @UseGuards(NotLoggedInGuard, AuthGuard('google'))
+  googleCallback(@Req() req: Request, @Res() res: Response) {
+    // You can save user info to DB here or return a JWT
+    return res.redirect('http://localhost:3001');
+  }
+
+  @Get('github')
+  @UseGuards(NotLoggedInGuard, AuthGuard('github'))
+  async githubAuth() {}
+
+  @Get('github/callback')
+  @UseGuards(NotLoggedInGuard, AuthGuard('github'))
+  githubCallback(@Req() req: Request, @Res() res: Response) {
+    return res.redirect('http://localhost:3001');
   }
 }
