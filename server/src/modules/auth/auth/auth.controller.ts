@@ -140,9 +140,19 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(NotLoggedInGuard, AuthGuard('google'))
-  googleCallback(@Req() req: Request, @Res() res: Response) {
-    // You can save user info to DB here or return a JWT
-    return res.redirect('http://localhost:3001');
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    return new Promise((resolve, reject) => {
+      if (!req.user) {
+        return reject(new Error('User not found'));
+      }
+      req.logIn(req.user, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        // Redirect after login
+        return res.redirect('http://localhost:3001/');
+      });
+    });
   }
 
   @Get('github')
@@ -151,7 +161,17 @@ export class AuthController {
 
   @Get('github/callback')
   @UseGuards(NotLoggedInGuard, AuthGuard('github'))
-  githubCallback(@Req() req: Request, @Res() res: Response) {
-    return res.redirect('http://localhost:3001');
+  async githubCallback(@Req() req: Request, @Res() res: Response) {
+    return new Promise((resolve, reject) => {
+      if (!req.user) {
+        return reject(new Error('User not found'));
+      }
+      req.logIn(req.user, (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return res.redirect('http://localhost:3001/');
+      });
+    });
   }
 }
