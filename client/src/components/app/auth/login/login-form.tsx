@@ -20,6 +20,8 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 // Define User type for mutation
 type User = {
@@ -45,6 +47,49 @@ export function LoginForm({
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const hasShownError = useRef(false);
+
+  // Handle error codes with useEffect to prevent showing toasts on every render
+  useEffect(() => {
+    if (hasShownError.current) return; // Already shown, skip
+    const errorCode = searchParams.get("error_code");
+
+    if (errorCode) {
+      hasShownError.current = true; // Mark as shown
+
+      switch (errorCode) {
+        case "oauth_failed": {
+          toast.error("OAuth login failed", {
+            richColors: true,
+            duration: 4000,
+            description: "Authentication Failed!",
+          });
+          console.log(errorCode);
+          break;
+        }
+        case "oauth_failed_404": {
+          toast.error("OAuth login failed", {
+            richColors: true,
+            duration: 4000,
+            description: "Authentication Failed!",
+          });
+          console.log(errorCode);
+          break;
+        }
+        default: {
+          toast.error("Login failed");
+          break;
+        }
+      }
+    }
+
+    // Optionally clear the error from the URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete("error_code");
+    window.history.replaceState({}, "", url.toString());
+  }, [searchParams]); // Only run when searchParams changes
 
   // Login Mutation (CORS Fix)
   const mutation = useMutation({
@@ -72,6 +117,10 @@ export function LoginForm({
         description: "Please try again later.",
       });
     },
+    onSettled: () => {
+      setLoading(false);
+    },
+    retry: false,
   });
 
   // Define form with proper typing
@@ -86,12 +135,15 @@ export function LoginForm({
 
   // Form Submit Handler
   const onSubmit = (data: LoginFormValues) => {
-    mutation.mutate(data);
+    setLoading(true);
+    setTimeout(() => {
+      mutation.mutate(data);
+    }, 2000);
   };
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-2 py-4">
         <a href="#" className="flex flex-col items-center gap-2 font-medium">
           <div className="flex h-8 w-8 items-center justify-center rounded-md">
             <GalleryVerticalEnd className="size-6" />
@@ -99,12 +151,6 @@ export function LoginForm({
           <span className="sr-only">SlowChat Inc.</span>
         </a>
         <h1 className="text-xl font-bold">Welcome to SlowChat Inc.</h1>
-        <div className="text-center text-sm">
-          Don't have an account?{" "}
-          <Link href="/auth/register" className="underline underline-offset-4">
-            Sign Up
-          </Link>
-        </div>
       </div>
       <Form {...form}>
         <form
@@ -145,7 +191,7 @@ export function LoginForm({
             name="remember"
             control={form.control}
             render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormItem className="flex flex-row items-center">
                 <FormControl>
                   <Checkbox
                     checked={field.value}
@@ -153,19 +199,15 @@ export function LoginForm({
                   />
                 </FormControl>
                 <div className="space-y-1 leading-none">
-                  <FormLabel className="text-sm font-normal">
+                  <FormLabel className="text-sm font-normal cursor-pointer">
                     Remember me
                   </FormLabel>
                 </div>
               </FormItem>
             )}
           />
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? "Logging in..." : "Login"}
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </Button>
         </form>
       </Form>
@@ -225,8 +267,11 @@ export function LoginForm({
           </a>
         </Button>
       </div>
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-        Copyright © 2025 <a href="#">SlowChat</a>. All rights reserved.
+      <div className="text-center text-sm py-2">
+        Don't have an account?{" "}
+        <Link href="/auth/register" className="underline underline-offset-4">
+          Sign Up
+        </Link>
       </div>
     </div>
   );

@@ -1,10 +1,12 @@
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-github2';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UsersService } from '@/users/users/users.service';
 
 @Injectable()
 export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
+  private readonly logger = new Logger(GitHubStrategy.name);
+  
   constructor(private readonly usersService: UsersService) {
     super({
       clientID: process.env.GITHUB_CLIENT_ID!,
@@ -15,16 +17,24 @@ export class GitHubStrategy extends PassportStrategy(Strategy, 'github') {
   }
 
   async validate(accessToken: string, refreshToken: string, profile: any, done: Function) {
-    const { username, emails, id } = profile;
     try {
+      this.logger.log(`GitHub OAuth profile: ${JSON.stringify(profile)}`);
+      
+      const { username, emails, id, displayName, photos } = profile;
+      
       const user = await this.usersService.createOrUpdateOAuthUser({
-        username,
+        name: displayName || username,
+        username: username || `github_${id}`,
         email: emails?.[0]?.value,
         provider: 'github',
         providerId: id,
+        avatarUrl: photos?.[0]?.value,
       });
+      
+      this.logger.log(`GitHub OAuth user created/found: ${user.id}`);
       done(null, user);
     } catch (err) {
+      this.logger.error(`GitHub OAuth validation error: ${err.message}`);
       done(err, null);
     }
   }

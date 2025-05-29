@@ -1,7 +1,6 @@
 "use client";
 
-import { ArchiveIcon, PlusCircleIcon, type LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { type LucideIcon } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -9,8 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export function NavMain({
   items,
@@ -22,35 +20,18 @@ export function NavMain({
   }[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
         <SidebarMenu>
-          <SidebarMenuItem className="flex items-center gap-2">
-            <SidebarMenuButton
-              tooltip="Quick Create"
-              className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-            >
-              <PlusCircleIcon />
-              <span>Quick Create</span>
-            </SidebarMenuButton>
-            <Button
-              size="icon"
-              className="h-9 w-9 shrink-0 group-data-[collapsible=icon]:opacity-0"
-              variant="outline"
-            >
-              <ArchiveIcon />
-              <span className="sr-only">Archive</span>
-            </Button>
-          </SidebarMenuItem>
-        </SidebarMenu>
-        <Separator className="opacity-50" />
-        <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
                 size={"default"}
+                isActive={item.url === pathname.replace("/", "")}
+                className="active:bg-primary active:text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                 tooltip={item.title}
                 onClick={() => {
                   router.push(item.url);

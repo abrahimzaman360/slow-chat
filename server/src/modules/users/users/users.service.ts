@@ -1,9 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+// src/users/users/users.service.ts
+import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { User } from '@/schema/user.entity'; // adjust path if needed
+import { User } from '@/schema/user.entity';
+import { v7 as uuidv7 } from 'uuid';
 
 @Injectable()
 export class UsersService {
@@ -22,7 +24,7 @@ export class UsersService {
     });
 
     if (exists) {
-      throw new Error('User already exists');
+      throw new ConflictException('User already exists');
     }
 
     try {
@@ -33,7 +35,6 @@ export class UsersService {
       });
 
       const savedUser = await this.userRepository.save(newUser);
-
       this.logger.log(`User created: ${savedUser.username}`);
       return savedUser;
     } catch (error) {
@@ -43,72 +44,149 @@ export class UsersService {
   }
 
   async createOrUpdateOAuthUser(profile: {
+    name?: string;
     email?: string;
     username?: string;
     provider: 'google' | 'github';
     providerId: string;
+    avatarUrl?: string;
   }): Promise<User> {
-    // First check if user exists by providerId + provider
-    let existing = await this.userRepository.findOne({
-      where: {
+    try {
+      this.logger.log(
+        `Creating/updating OAuth user: ${JSON.stringify(profile)}`,
+      );
+
+      // First try to find by OAuth provider and ID
+      let existing = await this.userRepository.findOne({
+        where: {
+          oauthProvider: profile.provider,
+          oauthProviderId: profile.providerId,
+        },
+      });
+
+      if (existing) {
+        this.logger.log(`Found existing OAuth user: ${existing.id}`);
+        // Update avatar URL if provided
+        if (profile.avatarUrl && !existing.avatarUrl) {
+          existing.avatarUrl = profile.avatarUrl;
+          await this.userRepository.save(existing);
+        }
+        return existing;
+      }
+
+      // If not found by OAuth, try by email
+      if (profile.email) {
+        existing = await this.userRepository.findOne({
+          where: { email: profile.email },
+        });
+
+        if (existing) {
+          this.logger.log(
+            `Found existing user by email, linking OAuth: ${existing.id}`,
+          );
+          // Link OAuth to existing account
+          existing.oauthProvider = profile.provider;
+          existing.oauthProviderId = profile.providerId;
+          if (profile.avatarUrl) {
+            existing.avatarUrl = profile.avatarUrl;
+          }
+          return await this.userRepository.save(existing);
+        }
+      }
+
+      // Create a unique username if needed
+      let username = profile.username;
+      if (!username) {
+        username = profile.email
+          ? profile.email.split('@')[0]
+          : `${profile.provider}_${profile.providerId}`;
+      }
+
+      // Check if username exists and make it unique if needed
+      const usernameExists = await this.userRepository.findOne({
+        where: { username },
+      });
+
+      if (usernameExists) {
+        username = `${username}_${Math.floor(Math.random() * 1000)}`;
+      }
+
+      // Create new user
+      this.logger.log(`Creating new OAuth user with username: ${username}`);
+      const newUser = this.userRepository.create({
+        name: profile.name,
+        email: profile.email,
+        username,
+        password: null, // OAuth users don't have passwords
         oauthProvider: profile.provider,
         oauthProviderId: profile.providerId,
-      },
-    });
-
-    if (!existing) {
-      // Try find by email or username as fallback
-      existing = await this.userRepository.findOne({
-        where: [{ email: profile.email }, { username: profile.username }],
+        avatarUrl: profile.avatarUrl,
       });
+
+      const savedUser = await this.userRepository.save(newUser);
+      this.logger.log(`New OAuth user created: ${savedUser.id}`);
+      return savedUser;
+    } catch (error) {
+      this.logger.error(`Error creating/updating OAuth user: ${error.message}`);
+      throw error;
     }
-
-    if (existing) {
-      // Update provider info if missing
-      if (!existing.oauthProvider || !existing.oauthProviderId) {
-        existing.oauthProvider = profile.provider;
-        existing.oauthProviderId = profile.providerId;
-        await this.userRepository.save(existing);
-      }
-      return existing;
-    }
-
-    // Create new user with OAuth info
-    const newUser = this.userRepository.create({
-      email: profile.email,
-      username: profile.username || `user-${profile.providerId}`,
-      password: null,
-      oauthProvider: profile.provider,
-      oauthProviderId: profile.providerId,
-    });
-
-    return this.userRepository.save(newUser);
   }
 
-  // Find by Email or Username
   async findByIdentity(identity: string): Promise<User | null> {
+    this.logger.log(`Finding user by identity: ${identity}`);
     return this.userRepository.findOne({
       where: [{ email: identity }, { username: identity }],
-    });
+    })
   }
 
-  // Find by Phone Number
   async findByPhoneNumber(phone: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { phone },
     });
   }
 
-  // Find by Unique UiD
   async findById(id: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { id } });
   }
 
-  // Validate User
   async validateUser(identity: string, password: string): Promise<User | null> {
     const user = await this.findByIdentity(identity);
-    if (!user || !user.password) return null;
+    if (!user || !user.password) {
+      return null;
+    }
     const isMatch = await bcrypt.compare(password, user.password);
     return isMatch ? user : null;
+  }
+
+  async findByRememberMeToken(token: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { rememberMeToken: token },
+    });
+  }
+
+  async generateRememberMeToken(userId: string): Promise<string> {
+    const token = uuidv7();
+    await this.userRepository.update(userId, { rememberMeToken: token });
+    return token;
+  }
+
+  async updateRememberMeToken(
+    userId: string,
+    token: string | null,
+  ): Promise<void> {
+    await this.userRepository.update(userId, {
+      rememberMeToken: token ?? undefined,
+    });
+  }
+
+  async updateTwoFactor(
+    id: string,
+    secret: string | null,
+    enabled: boolean,
+  ): Promise<void> {
+    await this.userRepository.update(id, {
+      twoFactorSecret: secret!,
+      twoFactorEnabled: enabled,
+    });
   }
 }

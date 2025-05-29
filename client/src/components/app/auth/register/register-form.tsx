@@ -115,7 +115,7 @@ export function RegisterForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-2 py-4">
         <a href="#" className="flex flex-col items-center gap-2 font-medium">
           <div className="flex h-8 w-8 items-center justify-center rounded-md">
             <GalleryVerticalEnd className="size-6" />
@@ -123,12 +123,6 @@ export function RegisterForm({
           <span className="sr-only">SlowChat Inc.</span>
         </a>
         <h1 className="text-xl font-bold">Welcome to SlowChat Inc.</h1>
-        <div className="text-center text-sm">
-          Already have an Account?{" "}
-          <Link href="/auth/login" className="underline underline-offset-4">
-            Sign In
-          </Link>
-        </div>
       </div>
       <Form {...form}>
         <form
@@ -136,13 +130,13 @@ export function RegisterForm({
           id="login-form"
           className="flex flex-col gap-6"
         >
-          <div className="flex flex-row justify-between w-full">
+          <div className="flex flex-row items-center justify-around gap-4">
             <FormField
               name="name"
               control={form.control}
               render={({ field }) => (
-                <FormItem className="grid gap-2">
-                  <FormLabel>Full name *</FormLabel>
+                <FormItem className="grid gap-2 w-full">
+                  <FormLabel>Full name</FormLabel>
                   <FormControl>
                     <Input placeholder="slowchat" {...field} />
                   </FormControl>
@@ -154,7 +148,7 @@ export function RegisterForm({
               name="username"
               control={form.control}
               render={({ field }) => (
-                <FormItem className="grid gap-2">
+                <FormItem className="grid gap-2 w-full">
                   <FormLabel>Username *</FormLabel>
                   <FormControl>
                     <Input placeholder="slowchat360" {...field} />
@@ -271,8 +265,11 @@ export function RegisterForm({
           </a>
         </Button>
       </div>
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-        Copyright © 2025 <a href="#">SlowChat</a>. All rights reserved.
+      <div className="text-center text-sm py-2">
+        Already have an Account?{" "}
+        <Link href="/auth/login" className="underline underline-offset-4">
+          Sign In
+        </Link>
       </div>
     </div>
   );

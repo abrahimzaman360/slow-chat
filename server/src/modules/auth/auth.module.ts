@@ -26,6 +26,6 @@ import { GitHubStrategy } from './strategy/github.strategy';
     GitHubStrategy,
   ],
   controllers: [AuthController],
-  exports: [AuthenticatedGuard], // Export if used in other modules
+  exports: [AuthenticatedGuard, AuthService], // Export if used in other modules
 })
 export class AuthModule {}

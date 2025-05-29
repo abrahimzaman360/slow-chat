@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, Unique } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+  Unique,
+} from 'typeorm';
 import { Message } from './message.entity';
 import { Chat } from './chat.entity';
 
@@ -10,7 +18,7 @@ export class User {
   id: string;
 
   // Name fields
-  @Column({ type: 'varchar', nullable: true})
+  @Column({ type: 'varchar', nullable: true })
   name: string;
 
   @Column({ type: 'varchar', nullable: true })
@@ -25,6 +33,9 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   password?: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  avatarUrl: string;
+
   // OAuth fields
   @Column({ type: 'varchar', nullable: true, default: null })
   oauthProvider?: string | null;
@@ -33,10 +44,13 @@ export class User {
   oauthProviderId?: string | null;
 
   @Column({ type: 'varchar', nullable: true })
-  avatarUrl: string;
+  twoFactorSecret?: string; // For 2FA TOTP secret
+
+  @Column({ type: 'boolean', default: false })
+  twoFactorEnabled: boolean; // 2FA status
 
   @Column({ type: 'varchar', nullable: true })
-  displayName: string;
+  rememberMeToken?: string; // For "Remember Me" persistent login
 
   @OneToMany(() => Message, (message) => message.sender)
   messages: Message[];

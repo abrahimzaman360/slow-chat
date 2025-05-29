@@ -1,5 +1,5 @@
 // auth/dto/login.dto.ts
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateUserDto } from '@/users/dto/create-user.dto';
 
@@ -14,6 +14,10 @@ export class LoginDto {
   @MinLength(7)
   @ApiProperty({ example: 'mrtux360' })
   password: string;
+
+  @IsBoolean()
+  @IsOptional()
+  rememberMe?: boolean;
 }
 
 export class RegisterDto extends CreateUserDto {

@@ -1,4 +1,4 @@
-// auth/auth.controller.ts
+// src/auth/auth.controller.ts
 import {
   Body,
   Controller,
@@ -12,9 +12,10 @@ import {
   Res,
   HttpException,
   UnauthorizedException,
+  Session,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto } from '../dto/auth.dto';
+import { RegisterDto } from '../dto/auth.dto';
 import {
   AuthenticatedGuard,
   LocalAuthGuard,
@@ -36,7 +37,7 @@ export class AuthController {
     const user = req.user as User;
 
     if (!user) {
-      throw new UnauthorizedException('Login failed');
+      throw new UnauthorizedException('Unauthorized Access Failed!');
     }
 
     return new Promise((resolve, reject) => {
@@ -59,7 +60,6 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     this.logger.log(`Register attempt with username: ${registerDto.username}`);
-
     try {
       const user = await this.authService.createUser(registerDto);
       return {
@@ -72,7 +72,6 @@ export class AuthController {
       };
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`);
-
       switch (error.message) {
         case 'User already exists':
           throw new HttpException(
@@ -93,8 +92,9 @@ export class AuthController {
   getMe(@Req() req: Request) {
     const user = req.user as User;
     this.logger.log(`Get me request for user: ${user.username}`);
+    const { password, ...userWithoutPassword } = user;
     return {
-      user,
+      user: userWithoutPassword,
       authenticated: true,
       timestamp: new Date().toISOString(),
     };
@@ -102,24 +102,40 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  logout(@Req() req: Request, @Res() res: Response) {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Not authenticated' });
-    }
+  async logout(@Req() req: Request, @Res() res: Response) {
+    try {
+      this.logger.log('Logout attempt');
 
-    req.logout((err) => {
-      if (err) return res.status(500).json({ message: 'Logout failed' });
+      // Check if authenticated
+      if (!req.isAuthenticated()) {
+        this.logger.log('Logout: Not authenticated');
+        return res.status(200).json({ message: 'Not authenticated' });
+      }
 
-      req.session.destroy((err) => {
-        if (err)
-          return res.status(500).json({ message: 'Session cleanup failed' });
+      const username = (req.user as User)?.username;
 
-        res.clearCookie('connect.sid');
-        res.json({ message: 'Logged out successfully' });
+      req.logout((err) => {
+        if (err) {
+          this.logger.error(`Logout error: ${err.message}`);
+          return res.status(500).json({ message: 'Logout failed' });
+        }
+
+        req.session.destroy((err) => {
+          if (err) {
+            this.logger.error(`Session destroy error: ${err.message}`);
+            return res.status(500).json({ message: 'Session cleanup failed' });
+          }
+
+          res.clearCookie('connect.sid');
+          this.logger.log(`User ${username} logged out successfully`);
+          return res.json({ message: 'Logged out successfully' });
+        });
       });
-    });
+    } catch (error) {
+      this.logger.error(`Logout error: ${error.message}`);
+      return res.status(500).json({ message: 'Logout failed' });
+    }
   }
-
   @Get('status')
   checkStatus(@Req() req: Request) {
     this.logger.log(`Status check - Session ID: ${req.sessionID}`);
@@ -133,45 +149,122 @@ export class AuthController {
     };
   }
 
-  // OAuth Routes:
   @Get('google')
   @UseGuards(NotLoggedInGuard, AuthGuard('google'))
   async googleAuth() {}
-
-  @Get('google/callback')
-  @UseGuards(NotLoggedInGuard, AuthGuard('google'))
-  async googleCallback(@Req() req: Request, @Res() res: Response) {
-    return new Promise((resolve, reject) => {
-      if (!req.user) {
-        return reject(new Error('User not found'));
-      }
-      req.logIn(req.user, (err) => {
-        if (err) {
-          return reject(err);
-        }
-        // Redirect after login
-        return res.redirect('http://localhost:3001/');
-      });
-    });
-  }
 
   @Get('github')
   @UseGuards(NotLoggedInGuard, AuthGuard('github'))
   async githubAuth() {}
 
-  @Get('github/callback')
-  @UseGuards(NotLoggedInGuard, AuthGuard('github'))
-  async githubCallback(@Req() req: Request, @Res() res: Response) {
-    return new Promise((resolve, reject) => {
-      if (!req.user) {
-        return reject(new Error('User not found'));
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Session() session: any,
+  ) {
+    try {
+      const user = req.user as User;
+
+      if (!user) {
+        this.logger.error('Google OAuth callback: No user found');
+        return res.redirect(
+          `${process.env.CLIENT_URL || 'http://localhost:3001'}/auth/login?error_code=oauth_failed_404`,
+        );
       }
-      req.logIn(req.user, (err) => {
-        if (err) {
-          return reject(err);
-        }
-        return res.redirect('http://localhost:3001/');
+
+      this.logger.log(`Google OAuth callback for user: ${user.username}`);
+
+      const result = await this.authService.login(user, false);
+      if (result.requires2FA) {
+        session.pending2FA = true;
+        session.userId = user.id;
+        return res.redirect(
+          `${process.env.CLIENT_URL || 'http://localhost:3001'}/2fa`,
+        );
+      }
+
+      session.pending2FA = false;
+
+      // Use a promise to handle the async login
+      await new Promise<void>((resolve, reject) => {
+        req.login(user, (err) => {
+          if (err) {
+            this.logger.error(`Google OAuth login error: ${err.message}`);
+            reject(err);
+            return;
+          }
+          resolve();
+        });
       });
-    });
+
+      this.logger.log(
+        `Google OAuth login successful for user: ${user.username}`,
+      );
+      return res.redirect(
+        `${process.env.CLIENT_URL || 'http://localhost:3001'}/messages`,
+      );
+    } catch (error) {
+      this.logger.error(`Google OAuth callback error: ${error.message}`);
+      return res.redirect(
+        `${process.env.CLIENT_URL || 'http://localhost:3001'}/auth/login?error_code=oauth_failed`,
+      );
+    }
+  }
+
+  @Get('github/callback')
+  @UseGuards(AuthGuard('github'))
+  async githubCallback(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Session() session: any,
+  ) {
+    try {
+      const user = req.user as User;
+      if (!user) {
+        this.logger.error('GitHub OAuth callback: No user found');
+        return res.redirect(
+          `${process.env.CLIENT_URL || 'http://localhost:3001'}/auth/login?error_code=oauth_failed_404`,
+        );
+      }
+
+      this.logger.log(`GitHub OAuth callback for user: ${user.username}`);
+
+      const result = await this.authService.login(user, false);
+      if (result.requires2FA) {
+        session.pending2FA = true;
+        session.userId = user.id;
+        return res.redirect(
+          `${process.env.CLIENT_URL || 'http://localhost:3001'}/2fa`,
+        );
+      }
+
+      session.pending2FA = false;
+
+      // Use a promise to handle the async login
+      await new Promise<void>((resolve, reject) => {
+        req.login(user, (err) => {
+          if (err) {
+            this.logger.error(`GitHub OAuth login error: ${err.message}`);
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
+
+      this.logger.log(
+        `GitHub OAuth login successful for user: ${user.username}`,
+      );
+      return res.redirect(
+        `${process.env.CLIENT_URL || 'http://localhost:3001'}/messages`,
+      );
+    } catch (error) {
+      this.logger.error(`GitHub OAuth callback error: ${error.message}`);
+      return res.redirect(
+        `${process.env.CLIENT_URL || 'http://localhost:3001'}/auth/login?error_code=oauth_failed`,
+      );
+    }
   }
 }

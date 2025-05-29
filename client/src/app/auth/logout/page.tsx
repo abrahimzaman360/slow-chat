@@ -14,6 +14,7 @@ import { useState } from "react";
 import { SERVER_URL } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/providers/auth-provider";
+import Link from "next/link";
 
 export default function LogoutPage() {
   const [open, setOpen] = useState(true);
@@ -43,37 +44,43 @@ export default function LogoutPage() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <Dialog defaultOpen open={open} onOpenChange={setOpen}>
-        <DialogTrigger className="" asChild>
-          <Button variant="outline">Logout</Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you sure to logout?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will logout you from your
-              account! You will need to login again to access your account!
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              disabled={loading}
-              onClick={() => setOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={LogoutAction}
-              disabled={loading}
-            >
-              {loading ? "Logging out..." : "Logout"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+    <div className="flex flex-col gap-3 items-center justify-center h-screen">
+      <h1>Do you want to logout?</h1>
+      <div className="flex flex-row gap-4">
+        <Button variant={"outline"} tabIndex={0} asChild>
+          <Link href={"/messages"}>Cancel Now</Link>
+        </Button>
+        <Dialog defaultOpen open={open} onOpenChange={setOpen}>
+          <DialogTrigger tabIndex={1} asChild>
+            <Button variant="destructive">Yes, Logout</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Are you sure to logout?</DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will logout you from your
+                account! You will need to login again to access your account!
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={loading}
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={LogoutAction}
+                disabled={loading}
+              >
+                {loading ? "Logging out..." : "Logout"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

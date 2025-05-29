@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/providers/auth-provider";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
 import QueryProvider from "@/lib/providers/tanstackquery-provider";
 import { Suspense } from "react";
 import { LoaderPinwheel } from "lucide-react";
@@ -51,6 +51,7 @@ export default function RootLayout({
           </Suspense>
           {/* <ReactQueryDevtools initialIsOpen={false} /> */}
         </QueryProvider>
+        <Toaster richColors />
       </body>
     </html>
   );

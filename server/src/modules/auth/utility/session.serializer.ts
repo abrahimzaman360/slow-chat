@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PassportSerializer } from '@nestjs/passport';
 import { User } from '@/schema/user.entity';
 import { UsersService } from '@/users/users/users.service';
 
 @Injectable()
 export class SessionSerializer extends PassportSerializer {
+  private readonly logger = new Logger(SessionSerializer.name);
   constructor(private usersService: UsersService) {
     super();
   }

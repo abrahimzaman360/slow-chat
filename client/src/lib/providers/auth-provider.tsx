@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       store.setUser(user ?? null);
     }
   }, [user, userFromStore, store]);
-
+  
   useEffect(() => {
     if (!isLoading) {
       const isAuthPage = ["/auth/login", "/auth/register", "/"].includes(
@@ -68,8 +68,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         router.push("/messages", {
           scroll: false,
         });
-        ({ to: "/messages" });
-      } else if (!user && !isAuthPage && pathname !== "/auth/login") {
+      } else if (
+        !user &&
+        !isAuthPage &&
+        pathname !== "/auth/login" &&
+        pathname !== "/"
+      ) {
         router.push("/auth/login", {
           scroll: false,
         });
